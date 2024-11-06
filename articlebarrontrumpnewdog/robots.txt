@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /preview/
+Disallow: /the-scorched-earth-wellness-war-between-tanya-zuckerbrot-emily-gellis-lande-and-ingrid-de-la-mare-kenny,inside-the-mean-girl-army-going-to-war-for-a-celebrity-dietician
+Sitemap: https://www.thedailybeast.com/arc/outboundfeeds/sitemap-index/?outputType=xml
+Sitemap: https://www.thedailybeast.com/arc/outboundfeeds/sitemap-news-index/?outputType=xml
+Sitemap: https://www.thedailybeast.com/arc/outboundfeeds/sitemap-section-index/?outputType=xml

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="37" height="37" viewBox="0 0 37 37">
+  <g id="email-icon" transform="translate(1 1)">
+    <g id="Rectangle_7" data-name="Rectangle 7" fill="#fff" stroke="#d5d1d1" stroke-width="1">
+      <rect width="35" height="35" stroke="none"/>
+      <rect x="-0.5" y="-0.5" width="36" height="36" fill="none"/>
+    </g>
+    <path id="Path_21" data-name="Path 21" d="M1.723,0H-9.809a1.439,1.439,0,0,0-1.434,1.441l-.007,8.648a1.445,1.445,0,0,0,1.441,1.441H1.723A1.446,1.446,0,0,0,3.164,10.09V1.441A1.446,1.446,0,0,0,1.723,0m0,2.883-5.766,3.6-5.766-3.6V1.441l5.766,3.6,5.766-3.6Z" transform="translate(21.928 12.568)" fill="#747881"/>
+  </g>
+</svg>

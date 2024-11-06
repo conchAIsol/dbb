@@ -1,0 +1,1223 @@
+!(function (e, n) {
+  if ('object' == typeof exports && 'object' == typeof module)
+    module.exports = n();
+  else if ('function' == typeof define && define.amd) define([], n);
+  else {
+    var r = n();
+    for (var t in r) ('object' == typeof exports ? exports : e)[t] = r[t];
+  }
+})('undefined' != typeof self ? self : this, function () {
+  return (() => {
+    var e = {
+        './node_modules/anylogger-console/anylogger-console.cjs.js': (
+          e,
+          n,
+          r
+        ) => {
+          function t(e) {
+            return e && 'object' == typeof e && 'default' in e
+              ? e
+              : { default: e };
+          }
+          var i = t(r('./node_modules/anylogger/anylogger.cjs.js'));
+          i.default.ext = function (e) {
+            var n = 'undefined' != typeof console && console;
+            for (var r in i.default.levels)
+              e[r] = (n && (n[r] || n.log)) || function () {};
+            return (
+              (e.enabledFor = function () {
+                return !0;
+              }),
+              e
+            );
+          };
+        },
+        './node_modules/anylogger/anylogger.cjs.js': (e) => {
+          var n = Object.create(null),
+            r = function (e, t) {
+              return e ? n[e] || (n[e] = r.ext(r.new(e, t))) : n;
+            };
+          (r.levels = {
+            error: 1,
+            warn: 2,
+            info: 3,
+            log: 4,
+            debug: 5,
+            trace: 6,
+          }),
+            (r.new = function (e, n) {
+              var t = {};
+              t[e] = function () {
+                r.log(e, [].slice.call(arguments));
+              };
+              try {
+                Object.defineProperty(t[e], 'name', {
+                  get: function () {
+                    return e;
+                  },
+                });
+              } catch (e) {}
+              return t[e];
+            }),
+            (r.log = function (e, t) {
+              var i = t.length > 1 && r.levels[t[0]] ? t.shift() : 'log';
+              n[e][i].apply(n[e], t);
+            }),
+            (r.ext = function (e) {
+              for (var n in ((e.enabledFor = function () {}), r.levels))
+                e[n] = function () {};
+              return e;
+            }),
+            (e.exports = r);
+        },
+        './src/services/amazon.js': (e, n, r) => {
+          'use strict';
+          function t(e, n, r, t) {
+            var o =
+                arguments.length > 4 && void 0 !== arguments[4]
+                  ? arguments[4]
+                  : null,
+              a = r;
+            if (t && void 0 !== window.innerWidth && void 0 !== r[0][0][0]) {
+              for (
+                var s = window.innerWidth, d = -1, l = t.length, c = 0;
+                c < l;
+                c++
+              )
+                if (s >= t[c][0]) {
+                  d = c;
+                  break;
+                }
+              a = r[d];
+            }
+            i(function () {
+              var r = { slotName: n, slotID: e, sizes: a };
+              window.apstag.fetchBids({ slots: [r] }, function () {
+                window.apstag.setDisplayBids(), o && o();
+              });
+            });
+          }
+          function i(e) {
+            window.apstag && e();
+          }
+          r.r(n),
+            r.d(n, { fetchAmazonBids: () => t, queueAmazonCommand: () => i });
+        },
+        './src/services/gpt.js': (e, n, r) => {
+          'use strict';
+          r.r(n),
+            r.d(n, {
+              initializeGPT: () => a,
+              refreshSlot: () => s,
+              queueGoogletagCommand: () => d,
+              setTargeting: () => l,
+              dfpSettings: () => c,
+              determineSlotName: () => u,
+            });
+          var t = r('./src/util/resources.js'),
+            i = r('./src/util/query.js'),
+            o = r('./src/util/log.js');
+          function a() {
+            (window.googletag = window.googletag || {}),
+              (window.googletag.cmd = window.googletag.cmd || []),
+              (0, t.appendResource)(
+                'script',
+                '//securepubads.g.doubleclick.net/tag/js/gpt.js',
+                !0,
+                !1
+              ),
+              (0, o.sendLog)(
+                'initializeGPT()',
+                'Appended googletag script to the head tag of the page.',
+                null
+              );
+          }
+          function s(e) {
+            var n = e.ad,
+              r = e.correlator,
+              t = void 0 !== r && r,
+              i = e.prerender,
+              a = void 0 === i ? null : i,
+              s = e.info,
+              d = void 0 === s ? {} : s;
+            function l() {
+              if (window.blockArcAdsLoad) return 'blockArcAdsLoad';
+              window.googletag && googletag.pubadsReady
+                ? window.onDvtagReady
+                  ? window.onDvtagReady(function () {
+                      window.googletag
+                        .pubads()
+                        .refresh([n], { changeCorrelator: t });
+                    })
+                  : window.googletag
+                      .pubads()
+                      .refresh([n], { changeCorrelator: t })
+                : setTimeout(function () {
+                    l();
+                  }, 200);
+            }
+            new Promise(function (e) {
+              if (a)
+                try {
+                  a(d).then(function () {
+                    e('Prerender function has completed.');
+                  });
+                } catch (n) {
+                  console.warn(
+                    'ArcAds: Prerender function did not return a promise or there was an error.\n          Documentation: https://github.com/washingtonpost/arcads/wiki/Utilizing-a-Prerender-Hook'
+                  ),
+                    e(
+                      'Prerender function did not return a promise or there was an error, ignoring.'
+                    );
+                }
+              else e('No Prerender function was provided.');
+            })
+              .then(function () {
+                l();
+              })
+              .catch(function (e) {
+                (0, o.sendLog)('header bidding', 'init error', e);
+              });
+          }
+          function d(e) {
+            window.googletag.cmd.push(e);
+          }
+          function l(e, n) {
+            for (var r in n)
+              n.hasOwnProperty(r) && n[r] && e.setTargeting(r, n[r]);
+          }
+          function c(e) {
+            window.googletag.pubads().disableInitialLoad(),
+              window.googletag.pubads().enableSingleRequest(),
+              window.googletag.pubads().enableAsyncRendering(),
+              this.collapseEmptyDivs &&
+                ((0, o.sendLog)(
+                  'dfpSettings()',
+                  'This wrapper is set to collapse any empty divs.',
+                  null
+                ),
+                window.googletag.pubads().collapseEmptyDivs()),
+              window.googletag.enableServices(),
+              e &&
+                ((0, o.sendLog)(
+                  'dfpSettings()',
+                  'This wrapper has a function to call upon the slot render ending.',
+                  null
+                ),
+                window.googletag
+                  .pubads()
+                  .addEventListener('slotRenderEnded', e));
+          }
+          function u(e, n) {
+            var r = (0, i.expandQueryString)('adslot');
+            return !r || ('' === r && null === r)
+              ? '/'.concat(e, '/').concat(n)
+              : '/'.concat(e, '/').concat(r);
+          }
+        },
+        './src/services/headerbidding.js': (e, n, r) => {
+          'use strict';
+          r.r(n),
+            r.d(n, { initializeBiddingServices: () => s, fetchBids: () => d });
+          var t = r('./src/services/prebid.js'),
+            i = r('./src/services/amazon.js'),
+            o = r('./src/services/gpt.js'),
+            a = r('./src/util/log.js');
+          function s(e) {
+            var n = e.prebid,
+              r = void 0 !== n && n,
+              t = e.amazon,
+              o = void 0 !== t && t;
+            if (window.arcBiddingReady)
+              (0, a.sendLog)(
+                'initializeBiddingServices()',
+                'Header bidding has been previously initialized',
+                null
+              );
+            else {
+              window.arcBiddingReady = !1;
+              var s = new Promise(function (e) {
+                  if (r && r.enabled) {
+                    if ('undefined' == typeof pbjs) {
+                      var n = n || {};
+                      n.que = n.que || [];
+                    }
+                    e('Prebid has been initialized');
+                  } else
+                    (0, a.sendLog)(
+                      'initializeBiddingServices()',
+                      'Prebid is not enabled on this wrapper.',
+                      null
+                    ),
+                      e('Prebid is not enabled on the wrapper...');
+                }),
+                d = new Promise(function (e) {
+                  o && o.enabled && window.apstag
+                    ? o.id && '' !== o.id
+                      ? (0, i.queueAmazonCommand)(function () {
+                          window.apstag.init({
+                            pubID: o.id,
+                            adServer: 'googletag',
+                          }),
+                            e('Amazon scripts have been added onto the page!');
+                        })
+                      : (console.warn(
+                          'ArcAds: Missing Amazon account id. \n          Documentation: https://github.com/washingtonpost/arcads#amazon-tama9'
+                        ),
+                        (0, a.sendLog)(
+                          'initializeBiddingServices()',
+                          'Amazon is not enabled on this wrapper.',
+                          null
+                        ),
+                        e('Amazon is not enabled on the wrapper...'))
+                    : e('Amazon is not enabled on the wrapper...');
+                });
+              Promise.all([s, d])
+                .then(function () {
+                  window.arcBiddingReady = !0;
+                })
+                .catch(function (e) {
+                  (0, a.sendLog)('header bidding', 'init error', e);
+                });
+            }
+          }
+          function d(e) {
+            var n = this,
+              r = e.ad,
+              d = e.id,
+              l = e.slotName,
+              c = e.dimensions,
+              u = e.wrapper,
+              g = e.bidding,
+              p = e.correlator,
+              f = void 0 !== p && p,
+              b = e.prerender,
+              h = e.breakpoints,
+              w = { adUnit: r, adSlot: l, adDimensions: c, adId: d, bids: g },
+              m = new Promise(function (e) {
+                if (u.prebid && u.prebid.enabled) {
+                  var i = u.prebid.timeout || 700;
+                  t.queuePrebidCommand.bind(
+                    n,
+                    (0, t.fetchPrebidBids)(
+                      r,
+                      u.prebid.useSlotForAdUnit ? l : d,
+                      i,
+                      w,
+                      b,
+                      function () {
+                        e('Fetched Prebid ads!');
+                      }
+                    )
+                  );
+                } else e('Prebid is not enabled on the wrapper...');
+              }),
+              v = new Promise(function (e) {
+                u.amazon && u.amazon.enabled
+                  ? (0, i.fetchAmazonBids)(d, l, c, h, function () {
+                      e('Fetched Amazon ads!');
+                    })
+                  : e('Amazon is not enabled on the wrapper...');
+              });
+            window.arcBiddingReady
+              ? Promise.all([m, v])
+                  .then(function () {
+                    (0, o.refreshSlot)({
+                      ad: r,
+                      correlator: f,
+                      prerender: b,
+                      info: w,
+                    });
+                  })
+                  .catch(function (e) {
+                    (0, a.sendLog)('header bidding', 'init error', e);
+                  })
+              : setTimeout(function () {
+                  return s();
+                }, 200);
+          }
+        },
+        './src/services/prebid.js': (e, n, r) => {
+          'use strict';
+          r.r(n),
+            r.d(n, {
+              queuePrebidCommand: () => s,
+              fetchPrebidBidsArray: () => d,
+              fetchPrebidBids: () => l,
+              addUnit: () => c,
+            });
+          var t = r('./src/services/gpt.js');
+          function i(e, n) {
+            var r = Object.keys(e);
+            if (Object.getOwnPropertySymbols) {
+              var t = Object.getOwnPropertySymbols(e);
+              n &&
+                (t = t.filter(function (n) {
+                  return Object.getOwnPropertyDescriptor(e, n).enumerable;
+                })),
+                r.push.apply(r, t);
+            }
+            return r;
+          }
+          function o(e) {
+            for (var n = 1; n < arguments.length; n++) {
+              var r = null != arguments[n] ? arguments[n] : {};
+              n % 2
+                ? i(Object(r), !0).forEach(function (n) {
+                    a(e, n, r[n]);
+                  })
+                : Object.getOwnPropertyDescriptors
+                  ? Object.defineProperties(
+                      e,
+                      Object.getOwnPropertyDescriptors(r)
+                    )
+                  : i(Object(r)).forEach(function (n) {
+                      Object.defineProperty(
+                        e,
+                        n,
+                        Object.getOwnPropertyDescriptor(r, n)
+                      );
+                    });
+            }
+            return e;
+          }
+          function a(e, n, r) {
+            return (
+              n in e
+                ? Object.defineProperty(e, n, {
+                    value: r,
+                    enumerable: !0,
+                    configurable: !0,
+                    writable: !0,
+                  })
+                : (e[n] = r),
+              e
+            );
+          }
+          function s(e) {
+            pbjs.que.push(e);
+          }
+          function d(e, n, r, i, o) {
+            var a =
+              arguments.length > 5 && void 0 !== arguments[5]
+                ? arguments[5]
+                : null;
+            pbjs.addAdUnits(i),
+              window.blockArcAdsPrebid ||
+                pbjs.requestBids({
+                  timeout: r,
+                  adUnitCodes: n,
+                  bidsBackHandler: function (r) {
+                    console.log('Bid Back Handler', r),
+                      pbjs.setTargetingForGPTAsync(n),
+                      a
+                        ? a()
+                        : (0, t.refreshSlot)({ ad: e, info: i, prerender: o });
+                  },
+                });
+          }
+          function l(e, n, r, t, i) {
+            var o =
+                arguments.length > 5 && void 0 !== arguments[5]
+                  ? arguments[5]
+                  : null,
+              a = t;
+            (a.bids = Array.isArray(t.bids) ? t.bids : [t.bids]),
+              d(e, [n], r, a, i, o);
+          }
+          function c(e, n, r) {
+            var t =
+                arguments.length > 3 && void 0 !== arguments[3]
+                  ? arguments[3]
+                  : {},
+              i =
+                arguments.length > 4 && void 0 !== arguments[4]
+                  ? arguments[4]
+                  : {},
+              a = o({ code: e, bids: r }, i);
+            a.mediaTypes = { banner: { sizes: n } };
+            var s = t.sizeConfig,
+              d = t.config;
+            pbjs.addAdUnits(a),
+              d ? pbjs.setConfig(d) : s && pbjs.setConfig({ sizeConfig: s });
+          }
+        },
+        './src/services/sizemapping.js': (e, n, r) => {
+          'use strict';
+          r.r(n),
+            r.d(n, {
+              sizemapListeners: () => d,
+              resizeListeners: () => l,
+              prepareSizeMaps: () => c,
+              parseSizeMappings: () => u,
+              runResizeEvents: () => g,
+              setResizeListener: () => p,
+            });
+          var t = r('./src/util/debounce.js'),
+            i = r('./src/services/headerbidding.js'),
+            o = r('./src/services/gpt.js'),
+            a = r('./src/util/log.js');
+          function s(e, n, r) {
+            return (
+              n in e
+                ? Object.defineProperty(e, n, {
+                    value: r,
+                    enumerable: !0,
+                    configurable: !0,
+                    writable: !0,
+                  })
+                : (e[n] = r),
+              e
+            );
+          }
+          var d = {},
+            l = {};
+          function c(e, n) {
+            var r = [],
+              t = [],
+              i = [],
+              o = n.length ? n : null;
+            return (
+              o &&
+                e &&
+                o.forEach(function (n, o) {
+                  r.push([n, e[o]]),
+                    -1 === t.indexOf(n[0]) && (t.push(n[0]), i.push(!1));
+                }),
+              t.sort(function (e, n) {
+                return e - n;
+              }),
+              { mapping: r, breakpoints: t, correlators: i }
+            );
+          }
+          function u(e) {
+            try {
+              var n = [
+                  window.innerWidth ||
+                    document.documentElement.clientWidth ||
+                    document.body.clientWidth,
+                  window.innerHeight ||
+                    document.documentElement.clientHeight ||
+                    document.body.clientHeight,
+                ],
+                r = e.filter(function (e) {
+                  return e[0][0] <= n[0] && e[0][1] <= n[1];
+                }),
+                t = r.length > 0 ? r[0][1] : [];
+              return t.length > 0 && t[0].constructor !== Array && (t = [t]), t;
+            } catch (n) {
+              return (
+                (0, a.sendLog)(
+                  'parseSizeMappings()',
+                  'invalid size mapping',
+                  null
+                ),
+                e[e.length - 1][1]
+              );
+            }
+          }
+          function g(e) {
+            var n,
+              r = !1;
+            if (e.breakpoints) {
+              var t = window.innerWidth;
+              n =
+                e.breakpoints
+                  .filter(function (e) {
+                    return e < t;
+                  })
+                  .pop() || e.breakpoints[0];
+            }
+            return function () {
+              for (
+                var t,
+                  a,
+                  l = e.ad,
+                  c = e.breakpoints,
+                  g = e.id,
+                  p = e.bidding,
+                  f = e.mapping,
+                  b = e.slotName,
+                  h = e.wrapper,
+                  w = e.prerender,
+                  m = window.innerWidth,
+                  v = 0;
+                v < c.length;
+                v++
+              ) {
+                if (
+                  ((t = c[v]),
+                  (a = c[v + 1]),
+                  n !== t && ((m > t && (m < a || !a)) || (m === t && !r)))
+                ) {
+                  var y;
+                  (n = t), (r = !0);
+                  var j =
+                      (s((y = {}), c[0], 'mobile'),
+                      s(y, c[1], 'tablet'),
+                      s(y, c[2], 'desktop'),
+                      y)[t] || 'unknown',
+                    A =
+                      e.targeting && e.targeting.breakpointTargeting
+                        ? e.targeting.breakpointTargeting[j]
+                        : void 0;
+                  A && setTargeting(l, A);
+                  var P = u(f),
+                    O = { adUnit: l, adSlot: b, adDimensions: P, adId: g };
+                  (p.prebid && p.prebid.enabled) ||
+                  (p.amazon && p.amazon.enabled)
+                    ? (0, i.fetchBids)({
+                        ad: l,
+                        id: g,
+                        slotName: b,
+                        dimensions: P,
+                        bidding: p,
+                        wrapper: h,
+                        prerender: w,
+                        correlator: d[g].correlators[v],
+                        breakpoints: c,
+                      })
+                    : (0, o.refreshSlot)({
+                        ad: l,
+                        correlator: d[g].correlators[v],
+                        prerender: w,
+                        info: O,
+                      });
+                }
+                d[g].correlators[v] = !0;
+              }
+            };
+          }
+          function p(e) {
+            var n = e.id,
+              r = e.correlators;
+            (l[n] = (0, t.debounce)(g(e), 250)),
+              window.addEventListener('resize', l[n]),
+              (d[n] = { listener: l[n], correlators: r });
+          }
+        },
+        './src/util/debounce.js': (e, n, r) => {
+          'use strict';
+          function t(e, n) {
+            var r;
+            return function () {
+              for (
+                var t = this, i = arguments.length, o = new Array(i), a = 0;
+                a < i;
+                a++
+              )
+                o[a] = arguments[a];
+              clearTimeout(r),
+                (r = setTimeout(function () {
+                  (r = null), e.apply(t, o);
+                }, n));
+            };
+          }
+          r.r(n), r.d(n, { debounce: () => t });
+        },
+        './src/util/log.js': (e, n, r) => {
+          'use strict';
+          r.r(n), r.d(n, { sendLog: () => o });
+          var t = r('./node_modules/anylogger/anylogger.cjs.js'),
+            i = r.n(t);
+          r('./node_modules/anylogger-console/anylogger-console.cjs.js');
+          function o(e, n, r) {
+            try {
+              if (
+                'true' ===
+                new URLSearchParams(window.location.search).get('debug')
+              )
+                i()('arcads.js')({
+                  service: 'ArcAds',
+                  timestamp: ''.concat(new Date()),
+                  'logging from': e,
+                  description: n,
+                  slotName: r,
+                });
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        },
+        './src/util/query.js': (e, n, r) => {
+          'use strict';
+          function t(e) {
+            var n = window.location.href,
+              r = e.replace(/[[\]]/g, '\\$&'),
+              t = new RegExp('[?&]'.concat(r, '(=([^&#]*)|&|#|$)')).exec(n);
+            return t
+              ? t[2]
+                ? decodeURIComponent(t[2].replace(/\+/g, ' '))
+                : ''
+              : null;
+          }
+          r.r(n), r.d(n, { expandQueryString: () => t });
+        },
+        './src/util/resources.js': (e, n, r) => {
+          'use strict';
+          function t(e, n, r, t, i) {
+            var o = document.createElement(e);
+            'script' === e &&
+              void 0 ===
+                document.querySelectorAll('script[src="'.concat(n, '"]'))[0] &&
+              ((o.src = n),
+              (o.async = r || !1),
+              (o.defer = r || t || !1),
+              (document.head || document.documentElement).appendChild(o),
+              i && i());
+          }
+          r.r(n), r.d(n, { appendResource: () => t });
+        },
+      },
+      n = {};
+    function r(t) {
+      var i = n[t];
+      if (void 0 !== i) return i.exports;
+      var o = (n[t] = { exports: {} });
+      return e[t](o, o.exports, r), o.exports;
+    }
+    (r.n = (e) => {
+      var n = e && e.__esModule ? () => e.default : () => e;
+      return r.d(n, { a: n }), n;
+    }),
+      (r.d = (e, n) => {
+        for (var t in n)
+          r.o(n, t) &&
+            !r.o(e, t) &&
+            Object.defineProperty(e, t, { enumerable: !0, get: n[t] });
+      }),
+      (r.o = (e, n) => Object.prototype.hasOwnProperty.call(e, n)),
+      (r.r = (e) => {
+        'undefined' != typeof Symbol &&
+          Symbol.toStringTag &&
+          Object.defineProperty(e, Symbol.toStringTag, { value: 'Module' }),
+          Object.defineProperty(e, '__esModule', { value: !0 });
+      });
+    var t = {};
+    return (
+      (() => {
+        'use strict';
+        r.r(t), r.d(t, { ArcAds: () => w });
+        var e = r('./src/util/log.js'),
+          n = r('./src/services/headerbidding.js'),
+          i = r('./src/services/gpt.js'),
+          o = r('./src/services/prebid.js'),
+          a = r('./src/services/sizemapping.js'),
+          s = ['breakpointTargeting'];
+        function d(e, n) {
+          if (null == e) return {};
+          var r,
+            t,
+            i = (function (e, n) {
+              if (null == e) return {};
+              var r,
+                t,
+                i = {},
+                o = Object.keys(e);
+              for (t = 0; t < o.length; t++)
+                (r = o[t]), n.indexOf(r) >= 0 || (i[r] = e[r]);
+              return i;
+            })(e, n);
+          if (Object.getOwnPropertySymbols) {
+            var o = Object.getOwnPropertySymbols(e);
+            for (t = 0; t < o.length; t++)
+              (r = o[t]),
+                n.indexOf(r) >= 0 ||
+                  (Object.prototype.propertyIsEnumerable.call(e, r) &&
+                    (i[r] = e[r]));
+          }
+          return i;
+        }
+        function l(e, n) {
+          var r = Object.keys(e);
+          if (Object.getOwnPropertySymbols) {
+            var t = Object.getOwnPropertySymbols(e);
+            n &&
+              (t = t.filter(function (n) {
+                return Object.getOwnPropertyDescriptor(e, n).enumerable;
+              })),
+              r.push.apply(r, t);
+          }
+          return r;
+        }
+        function c(e) {
+          for (var n = 1; n < arguments.length; n++) {
+            var r = null != arguments[n] ? arguments[n] : {};
+            n % 2
+              ? l(Object(r), !0).forEach(function (n) {
+                  u(e, n, r[n]);
+                })
+              : Object.getOwnPropertyDescriptors
+                ? Object.defineProperties(
+                    e,
+                    Object.getOwnPropertyDescriptors(r)
+                  )
+                : l(Object(r)).forEach(function (n) {
+                    Object.defineProperty(
+                      e,
+                      n,
+                      Object.getOwnPropertyDescriptor(r, n)
+                    );
+                  });
+          }
+          return e;
+        }
+        function u(e, n, r) {
+          return (
+            n in e
+              ? Object.defineProperty(e, n, {
+                  value: r,
+                  enumerable: !0,
+                  configurable: !0,
+                  writable: !0,
+                })
+              : (e[n] = r),
+            e
+          );
+        }
+        function g(e, n) {
+          if (!(e instanceof n))
+            throw new TypeError('Cannot call a class as a function');
+        }
+        function p(e, n) {
+          for (var r = 0; r < n.length; r++) {
+            var t = n[r];
+            (t.enumerable = t.enumerable || !1),
+              (t.configurable = !0),
+              'value' in t && (t.writable = !0),
+              Object.defineProperty(e, t.key, t);
+          }
+        }
+        function f(e) {
+          return (
+            (function (e) {
+              if (Array.isArray(e)) return b(e);
+            })(e) ||
+            (function (e) {
+              if (
+                ('undefined' != typeof Symbol && null != e[Symbol.iterator]) ||
+                null != e['@@iterator']
+              )
+                return Array.from(e);
+            })(e) ||
+            (function (e, n) {
+              if (!e) return;
+              if ('string' == typeof e) return b(e, n);
+              var r = Object.prototype.toString.call(e).slice(8, -1);
+              'Object' === r && e.constructor && (r = e.constructor.name);
+              if ('Map' === r || 'Set' === r) return Array.from(e);
+              if (
+                'Arguments' === r ||
+                /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(r)
+              )
+                return b(e, n);
+            })(e) ||
+            (function () {
+              throw new TypeError(
+                'Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.'
+              );
+            })()
+          );
+        }
+        function b(e, n) {
+          (null == n || n > e.length) && (n = e.length);
+          for (var r = 0, t = new Array(n); r < n; r++) t[r] = e[r];
+          return t;
+        }
+        function h(e) {
+          return Array.isArray(e)
+            ? 1 +
+                Math.max.apply(
+                  Math,
+                  f(
+                    e.map(function (e) {
+                      return h(e);
+                    })
+                  )
+                )
+            : 0;
+        }
+        var w = (function () {
+          function r(t) {
+            var o =
+              arguments.length > 1 && void 0 !== arguments[1]
+                ? arguments[1]
+                : null;
+            g(this, r),
+              (this.dfpId = t.dfp.id || ''),
+              (this.wrapper = t.bidding || {}),
+              (this.positions = []),
+              (this.collapseEmptyDivs = t.dfp.collapseEmptyDivs),
+              (this.adsList = []),
+              '' === this.dfpId
+                ? (console.warn(
+                    'ArcAds: DFP id is missing from the arcads initialization script.',
+                    '\n',
+                    'Documentation: https://github.com/washingtonpost/arcads#getting-started'
+                  ),
+                  (0, e.sendLog)(
+                    'constructor()',
+                    'The DFP id missing from the arcads initialization script. ArcAds cannot proceed.',
+                    null
+                  ))
+                : ((0, i.initializeGPT)(),
+                  (0, i.queueGoogletagCommand)(i.dfpSettings.bind(this, o)),
+                  (0, n.initializeBiddingServices)(this.wrapper));
+          }
+          var t, l, b;
+          return (
+            (t = r),
+            (b = [
+              {
+                key: 'setAdsBlockGate',
+                value: function () {
+                  var e = r.getWindow();
+                  void 0 !== e && (e.blockArcAdsLoad = !0);
+                },
+              },
+              {
+                key: 'releaseAdsBlockGate',
+                value: function () {
+                  var e = r.getWindow();
+                  void 0 !== e && (e.blockArcAdsLoad = !1);
+                },
+              },
+              {
+                key: 'getWindow',
+                value: function () {
+                  return window;
+                },
+              },
+            ]),
+            (l = [
+              {
+                key: 'registerAd',
+                value: function (n) {
+                  console.log('registerAd', n);
+                  var r = n.id,
+                    t = n.slotName,
+                    a = n.dimensions,
+                    s = n.adType,
+                    d = void 0 !== s && s,
+                    l = n.targeting,
+                    c = void 0 === l ? {} : l,
+                    u = n.display,
+                    g = void 0 === u ? 'all' : u,
+                    p = n.bidding,
+                    b = void 0 !== p && p,
+                    w = n.iframeBidders,
+                    m = void 0 === w ? ['openx'] : w,
+                    v = n.others,
+                    y = void 0 === v ? {} : v,
+                    j = [],
+                    A = !1,
+                    P = h(a),
+                    O = t.includes('.mw');
+                  (a && void 0 !== a && 1 === P) ||
+                  (a && void 0 !== a && a.length > 0 && 2 === P)
+                    ? j.push.apply(j, f(a))
+                    : a &&
+                      a.forEach(function (e) {
+                        j.push.apply(j, f(e));
+                      });
+                  try {
+                    if (!((c && c.hasOwnProperty('position')) || !1 === d)) {
+                      var S = this.positions[d] + 1 || 1;
+                      this.positions[d] = S;
+                      var k = Object.assign(c, { position: S });
+                      Object.assign(n, { targeting: k });
+                    }
+                    if (!((c && c.hasOwnProperty('refAd')) || !1 === d)) {
+                      var z = Object.assign(c, { refAd: 'false' });
+                      Object.assign(n, { targeting: z });
+                    }
+                    var L =
+                      b.prebid &&
+                      ((b.prebid.enabled && b.prebid.bids) ||
+                        (void 0 === b.prebid.enabled && b.prebid.bids));
+                    if (
+                      (O && 'mobile' === g) ||
+                      (!O && 'desktop' === g) ||
+                      'all' === g
+                    ) {
+                      if (
+                        L &&
+                        this.wrapper.prebid &&
+                        this.wrapper.prebid.enabled &&
+                        j
+                      ) {
+                        pbjs &&
+                          m.length > 0 &&
+                          pbjs.setConfig({
+                            userSync: {
+                              iframeEnabled: !0,
+                              filterSettings: {
+                                iframe: { bidders: m, filter: 'include' },
+                              },
+                            },
+                          });
+                        var T = this.wrapper.prebid.useSlotForAdUnit
+                          ? (0, i.determineSlotName)(this.dfpId, t)
+                          : r;
+                        o.queuePrebidCommand.bind(
+                          this,
+                          (0, o.addUnit)(
+                            T,
+                            j,
+                            b.prebid.bids,
+                            this.wrapper.prebid,
+                            y
+                          )
+                        );
+                      }
+                      (A = this.displayAd.bind(this, n)) &&
+                        ((0, e.sendLog)(
+                          'registerAd()',
+                          'Queuing Google Tag command for ad',
+                          t
+                        ),
+                        (0, i.queueGoogletagCommand)(A));
+                    }
+                  } catch (e) {
+                    console.error('ads error', e);
+                  }
+                },
+              },
+              {
+                key: 'registerAdCollection',
+                value: function (e) {
+                  var n = this;
+                  e.forEach(function (e) {
+                    n.registerAd(e);
+                  });
+                },
+              },
+              {
+                key: 'registerAdCollectionSingleCall',
+                value: function (n) {
+                  var r = this,
+                    t =
+                      arguments.length > 1 && void 0 !== arguments[1]
+                        ? arguments[1]
+                        : 700;
+                  (0, e.sendLog)(
+                    'registerAdCollectionSingleCall()',
+                    'Registering all reserved ads',
+                    null
+                  ),
+                    (window.blockArcAdsLoad = !0),
+                    (window.blockArcAdsPrebid = !0),
+                    n.forEach(function (e) {
+                      r.registerAd(e);
+                    }),
+                    (window.blockArcAdsLoad = !1),
+                    (window.blockArcAdsPrebid = !1),
+                    pbjs.requestBids({
+                      timeout: t,
+                      bidsBackHandler: function (e) {
+                        console.log('Bid Back Handler', e),
+                          pbjs.setTargetingForGPTAsync(),
+                          window.googletag.pubads().refresh(window.adsList),
+                          (window.adsList = []);
+                      },
+                    });
+                },
+              },
+              {
+                key: 'displayAd',
+                value: function (r) {
+                  var t = r.id,
+                    o = r.slotName,
+                    l = r.dimensions,
+                    g = r.targeting,
+                    p = r.sizemap,
+                    f = void 0 !== p && p,
+                    b = r.bidding,
+                    h = void 0 !== b && b,
+                    w = r.prerender,
+                    m = void 0 === w ? null : w,
+                    v = (0, i.determineSlotName)(this.dfpId, o),
+                    y = l && !l.length ? null : l,
+                    j = f.breakpoints.reduce(function (e, n, r) {
+                      return c(
+                        c({}, e),
+                        {},
+                        u({}, n[0], ['desktop', 'tablet', 'mobile'][r])
+                      );
+                    }, {})[
+                      f.breakpoints.find(function (e) {
+                        return window.innerWidth >= e[0];
+                      })[0]
+                    ],
+                    A = g.breakpointTargeting,
+                    P = d(g, s),
+                    O = l
+                      ? window.googletag.defineSlot(v, y, t)
+                      : window.googletag.defineOutOfPageSlot(v, t);
+                  if (f && f.breakpoints && l) {
+                    var S = (0, a.prepareSizeMaps)(y, f.breakpoints),
+                      k = S.mapping,
+                      z = S.breakpoints,
+                      L = S.correlators;
+                    if (!O)
+                      return (
+                        (0, e.sendLog)(
+                          'displayAd()',
+                          'No ad available to display - the div was either not defined or an ad with the same slot name already exists on the page',
+                          o
+                        ),
+                        !1
+                      );
+                    O.defineSizeMapping(k),
+                      f.refresh &&
+                        ((0, e.sendLog)(
+                          'displayAd()',
+                          'Attaching resize listener to the ad with this slot name and sizemap defined',
+                          o
+                        ),
+                        (0, a.setResizeListener)({
+                          ad: O,
+                          bidding: h,
+                          breakpoints: z,
+                          correlators: L,
+                          id: t,
+                          mapping: k,
+                          prerender: m,
+                          slotName: v,
+                          targeting: g,
+                          wrapper: this.wrapper,
+                        }));
+                  }
+                  O &&
+                    (O.addService(window.googletag.pubads()),
+                    (0, i.setTargeting)(O, c(c({}, P), A[j])));
+                  var T = f && f.breakpoints ? f.breakpoints : [];
+                  this.adsList && O && this.adsList.push(O),
+                    l &&
+                    h &&
+                    ((h.amazon && h.amazon.enabled) ||
+                      (h.prebid && h.prebid.enabled))
+                      ? ((0, e.sendLog)(
+                          'displayAd()',
+                          'Fetching bids for ad with this slot name',
+                          o
+                        ),
+                        (0, n.fetchBids)({
+                          ad: O,
+                          id: t,
+                          slotName: v,
+                          dimensions: y,
+                          wrapper: this.wrapper,
+                          prerender: m,
+                          bidding: h,
+                          breakpoints: T,
+                        }))
+                      : window.blockArcAdsPrebid ||
+                        ((0, e.sendLog)(
+                          'displayAd()',
+                          'Refreshing ad with this slot name',
+                          o
+                        ),
+                        (0, i.refreshSlot)({
+                          ad: O,
+                          prerender: m,
+                          info: {
+                            adUnit: O,
+                            adSlot: v,
+                            adDimensions: y,
+                            adId: t,
+                          },
+                        }));
+                },
+              },
+              {
+                key: 'refreshAd',
+                value: function (e, r) {
+                  var t = this,
+                    o = e.bidding,
+                    a = e.dimensions,
+                    s = e.id,
+                    d = e.prerender,
+                    l = e.sizemap,
+                    c = e.slotName,
+                    u = (0, i.determineSlotName)(this.dfpId, c),
+                    g = a && !a.length ? null : a,
+                    p = l && l.breakpoints ? l.breakpoints : [],
+                    f = document.getElementById(s);
+                  f
+                    ? new IntersectionObserver(
+                        function (e, i) {
+                          e.forEach(function (e) {
+                            e.isIntersecting &&
+                              (t.adsList.forEach(function (e) {
+                                e.getSlotElementId() === s &&
+                                  (e.setTargeting('rfrsh', r),
+                                  e.setTargeting('refAd', 'true'),
+                                  (0, n.fetchBids)({
+                                    ad: e,
+                                    id: s,
+                                    slotName: u,
+                                    dimensions: g,
+                                    wrapper: t.wrapper,
+                                    prerender: d,
+                                    bidding: o,
+                                    breakpoints: p,
+                                  }));
+                              }),
+                              i.disconnect());
+                          });
+                        },
+                        { root: null, threshold: 0.5 }
+                      ).observe(f)
+                    : console.error('Ad div with ID '.concat(s, ' not found'));
+                },
+              },
+              {
+                key: 'sendSingleCallAds',
+                value: function () {
+                  var n = this,
+                    r =
+                      arguments.length > 0 && void 0 !== arguments[0]
+                        ? arguments[0]
+                        : 700;
+                  if (this.adsList && this.adsList.length < 1)
+                    return (
+                      (0, e.sendLog)(
+                        'sendSingleCallAds()',
+                        'No ads have been reserved on the page',
+                        null
+                      ),
+                      !1
+                    );
+                  window && window.googletag && googletag.pubadsReady
+                    ? (window.googletag.pubads().disableInitialLoad(),
+                      window.googletag.pubads().enableSingleRequest(),
+                      window.googletag.pubads().enableAsyncRendering(),
+                      this.registerAdCollectionSingleCall(this.adsList, r))
+                    : setTimeout(function () {
+                        n.sendSingleCallAds();
+                      }, 2e3);
+                },
+              },
+              {
+                key: 'reserveAd',
+                value: function (e) {
+                  r.setAdsBlockGate(), this.adsList.push(e);
+                },
+              },
+              {
+                key: 'setPageLeveTargeting',
+                value: function (e, n) {
+                  googletag.pubads().setTargeting(e, n);
+                },
+              },
+            ]) && p(t.prototype, l),
+            b && p(t, b),
+            r
+          );
+        })();
+      })(),
+      t
+    );
+  })();
+});

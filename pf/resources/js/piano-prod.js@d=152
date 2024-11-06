@@ -1,0 +1,363 @@
+(function () {
+  ('use strict');
+
+  const NODE_ENV = 'production';
+  const FEATURE_TOGGLE_LTS_SCORE_PIANO_CUSTOM_VAR = true;
+  const FEATURE_TOGGLE_TDB_NEWSLETTER_SCORE_PIANO_CUSTOM_VAR = true;
+
+  var CONTENT_TYPE = {
+    ARTICLE: 'article',
+    AUTHOR: 'author',
+    CHEAT: 'cheat',
+    GALLERY: 'gallery',
+    TOPIC: 'topic',
+  };
+
+  function Piano() {
+    window.tp = window.tp || [];
+
+    if (!window.tp.push) {
+      // sometimes 'tp' is an empty object
+      window.tp = [];
+    }
+
+    this.initialized = false;
+    this.alreadyExecuted = false;
+  }
+
+  Piano.prototype.init = function init() {
+    if (!this.initialized) {
+      this.initialized = true;
+
+      window.tp.push(['setAid', 'SrmTGdXwNo']);
+      window.tp.push(['setEndpoint', 'https://buy.tinypass.com/api/v3']);
+      window.tp.push(['setUseTinypassAccounts', false]);
+      window.tp.push(['setUsePianoIdUserProvider', true]);
+      window.tp.push(['setCxenseSiteId', '1137431972075209946']);
+      window.tp.push([
+        'setCloudflareWorkerUrl',
+        'https://id.thedailybeast.com',
+      ]);
+      window.tp.push(['setApplePayMerchantId', '3jmf897fpz84f6gy']);
+
+      window.tp.push([
+        'addHandler',
+        'checkoutClose',
+        function onCheckoutClose(event) {
+          // Default behavior is to refresh the page on successful checkout
+          if (
+            event &&
+            event.state === 'checkoutCompleted' &&
+            !(
+              // Except on ...
+              // /membership?source=membership&medium=gift-35
+              // /membership?source=membership&medium=gift
+              (
+                window.location.pathname === '/membership' &&
+                new RegExp(/\?source=membership&medium=gift(-35)?$/).test(
+                  window.location.search
+                )
+              )
+            )
+          ) {
+            location.reload();
+          }
+        },
+      ]);
+    }
+  };
+
+  /**
+   * Returns page content type based on the pageData.type or metatags on the page
+   * @param pageData {Object} – same as __INITIAL_STATE__
+   * @returns {String} – 'home', 'article', 'cheat', 'gallery', 'wrap', 'topic', etc.
+   */
+  Piano.prototype.getContentType = function getContentType(pageData) {
+    var contentType;
+
+    if (pageData.type) {
+      contentType = pageData.type;
+    } else {
+      var templateMetatag = window.document.querySelector(
+        'meta[name=template]'
+      );
+      contentType = templateMetatag
+        ? templateMetatag.getAttribute('content')
+        : undefined;
+    }
+
+    if (contentType === 'wrap' && pageData.collectionType) {
+      if (pageData.collectionType === 'author') {
+        contentType = CONTENT_TYPE.AUTHOR;
+      } else if (pageData.collectionType === 'keyword') {
+        contentType = CONTENT_TYPE.TOPIC;
+      }
+    }
+
+    return contentType;
+  };
+
+  Piano.prototype.isStoryPage = function isStoryPage(contentType) {
+    return (
+      contentType === CONTENT_TYPE.ARTICLE ||
+      contentType === CONTENT_TYPE.CHEAT ||
+      contentType === CONTENT_TYPE.GALLERY
+    );
+  };
+
+  /**
+   * Obsessed Piano/DPF Data
+   */
+  Piano.prototype.pushObsessedData = function pushObsessedData(pageData) {
+    const tags = pageData.obsessedTags || [];
+
+    const byType = (type) => (tag) => type === tag.type;
+
+    const toSlug = (tag) => (tag && tag.slug) || '';
+
+    const coverageType = tags.find(byType('coverage'));
+    window.tp.push([
+      'setCustomVariable',
+      'coverageType',
+      coverageType && coverageType.slug,
+    ]);
+
+    const whereToWatch = tags.filter(byType('source')).map(toSlug).join(',');
+    window.tp.push(['setCustomVariable', 'whereToWatch', whereToWatch]);
+
+    const awards = tags.filter(byType('award')).map(toSlug).join(',');
+    window.tp.push(['setCustomVariable', 'awards', awards]);
+  };
+
+  /**
+   * Piano content tracking
+   * @see implementation - http://docs.piano.io/content-tracking/
+   * @see validation - http://docs.piano.io/validating-piano-javascript/
+   * @param pageData - {Object} – same as __INITIAL_STATE__
+   */
+  Piano.prototype.trackContent = function trackContent(pageData) {
+    var pianoGetCookie = function (t) {
+      return (
+        document.cookie
+          .split(';')
+          .map(function (c) {
+            return c.split('=');
+          })
+          .reduce(function (acc, pair) {
+            acc[pair[0].trim()] = pair[1];
+            return acc;
+          }, {})[t] || ''
+      );
+    };
+
+    // TODO: remove this block once the old CS page is trashed
+    if (pageData.type === 'cheatsheet' && pageData.sidebar instanceof Array) {
+      pageData = pageData.sidebar[0];
+    }
+
+    if (window.tp.customParams && window.tp.customParams.content) {
+      window.tp.customParams.content = {};
+    }
+
+    var contentType = this.getContentType(pageData);
+    var metadata = pageData.metadata || {};
+    var specialContentFlag =
+      pageData.specialContentFlag || metadata.specialContentFlag;
+    var subtype = pageData.subtype || metadata.subtype;
+
+    if (contentType) {
+      window.tp.push(['setCustomParam', 'contentType', contentType]);
+    }
+
+    if (this.isStoryPage(contentType)) {
+      const contentIsOpinion = String(specialContentFlag === 'opinion');
+      const contentIsExclusive = String(specialContentFlag === 'exclusive');
+      const contentIsExpress = String(subtype === 'express');
+      const contentIsFeature = String(subtype === 'feature');
+
+      if (pageData.site === 'obsessed') {
+        this.pushObsessedData(pageData);
+      }
+
+      window.tp.push(['setCustomParam', 'contentIsOpinion', contentIsOpinion]);
+      window.tp.push([
+        'setCustomParam',
+        'contentIsExclusive',
+        contentIsExclusive,
+      ]);
+      window.tp.push(['setCustomParam', 'contentIsExpress', contentIsExpress]);
+      window.tp.push(['setCustomParam', 'contentIsFeature', contentIsFeature]);
+
+      window.tp.push([
+        'setCustomVariable',
+        'contentIsOpinion',
+        contentIsOpinion,
+      ]);
+      window.tp.push([
+        'setCustomVariable',
+        'contentIsExclusive',
+        contentIsExclusive,
+      ]);
+      window.tp.push([
+        'setCustomVariable',
+        'contentIsExpress',
+        contentIsExpress,
+      ]);
+      window.tp.push([
+        'setCustomVariable',
+        'contentIsFeature',
+        contentIsFeature,
+      ]);
+    }
+
+    if (pageData.subvertical && pageData.subvertical.name) {
+      window.tp.push([
+        'setCustomParam',
+        'contentSubVertical',
+        pageData.subvertical.name,
+      ]);
+    }
+
+    if (pageData.publicationDate) {
+      window.tp.push(['setContentCreated', pageData.publicationDate]);
+      var pubDate = new Date(pageData.publicationDate);
+      var timeDiff =
+        Math.abs(new Date().getTime() - pubDate.getTime()) / 3600000;
+      window.tp.push(['setCustomVariable', 'is48hoursold', timeDiff > 48]);
+    }
+
+    var tags = [];
+    var tagsRef = pageData.tags || pageData.Tags || [];
+    tagsRef.forEach(function (tag) {
+      tags.push(tag);
+    });
+
+    if (
+      tags &&
+      (contentType === CONTENT_TYPE.ARTICLE ||
+        contentType === CONTENT_TYPE.CHEAT)
+    ) {
+      tags.push({ type: contentType });
+    }
+
+    if (tags && tags.length) {
+      window.tp.push([
+        'setTags',
+        tags.map(function (tag) {
+          return tag.slug || tag.type;
+        }),
+      ]);
+    } else if (window.tp.tags) {
+      window.tp.push(['setTags', []]);
+    }
+
+    if (pageData.authors && pageData.authors.length) {
+      var authorsNames = pageData.authors
+        .map(function (author) {
+          return author.name;
+        })
+        .join(',');
+      window.tp.push(['setContentAuthor', authorsNames]);
+    } else if (window.tp.contentAuthor) {
+      window.tp.push(['setContentAuthor', '']);
+    }
+
+    if (pageData.type) {
+      window.tp.push(['setCustomVariable', 'pageType', pageData.type]);
+    }
+
+    if (pageData.audience) {
+      window.tp.push(['setCustomVariable', 'audience', pageData.audience]);
+    }
+
+    if (pageData.vertical && pageData.vertical.name) {
+      window.tp.push(['setContentSection', pageData.vertical.name]);
+      window.tp.push(['setCustomVariable', 'vertical', pageData.vertical.name]);
+    } else if (pageData.section && pageData.section.title) {
+      window.tp.push(['setContentSection', pageData.section.title]);
+      window.tp.push(['setCustomVariable', 'vertical', pageData.section.title]);
+    } else if (window.tp.contentSection) {
+      window.tp.push(['setContentSection', '']);
+      window.tp.push(['setCustomVariable', 'vertical', '']);
+    }
+
+    if (pageData.subvertical && pageData.subvertical.slug) {
+      window.tp.push([
+        'setCustomVariable',
+        'contentSubVertical',
+        pageData.subvertical.name,
+      ]);
+    } else {
+      window.tp.push(['setCustomVariable', 'contentSubVertical', 'none']);
+    }
+
+    if (pageData.franchise && pageData.franchise.slug) {
+      window.tp.push([
+        'setCustomVariable',
+        'contentFranchise',
+        pageData.franchise.slug,
+      ]);
+    } else {
+      window.tp.push(['setCustomVariable', 'contentFranchise', 'none']);
+    }
+
+    var sailthruId = pianoGetCookie('sailthru_hid');
+    window.tp.push(['setCustomVariable', 'hasSailthruId', Boolean(sailthruId)]);
+
+    var branded = Boolean(pageData.branded || metadata.branded);
+    window.tp.push(['setContentIsNative', branded]);
+
+    if (metadata.productName) {
+      window.tp.push([
+        'setCustomVariable',
+        'productName',
+        metadata.productName,
+      ]);
+    }
+
+    if (
+      FEATURE_TOGGLE_LTS_SCORE_PIANO_CUSTOM_VAR === 'true' &&
+      pageData.pianoLtsScore
+    ) {
+      window.tp.push([
+        'setCustomVariable',
+        'pianoLtsScore',
+        pageData.pianoLtsScore,
+      ]);
+    }
+
+    if (
+      FEATURE_TOGGLE_TDB_NEWSLETTER_SCORE_PIANO_CUSTOM_VAR === 'true' &&
+      pageData.tdbNewsletterScore &&
+      pageData.tdbNewsletterScore !== 'none'
+    ) {
+      window.tp.push([
+        'setCustomVariable',
+        'tdbNewsletterScore',
+        pageData.tdbNewsletterScore,
+      ]);
+    }
+
+    if (this.alreadyExecuted && window.tp && window.tp.experience) {
+      window.tp.experience.execute();
+    } else {
+      this.alreadyExecuted = true;
+
+      window.tp.push([
+        'init',
+        function () {
+          if (NODE_ENV !== 'production') {
+            window.tp.pianoId.init({
+              iframeUrl: 'https://sandbox.tinypass.com',
+            });
+          }
+
+          window.tp.experience.init();
+          window.tp.enableGACrossDomainLinking();
+        },
+      ]);
+    }
+  };
+
+  window.Piano = Piano;
+})();

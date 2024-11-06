@@ -1,0 +1,143 @@
+// import { addPushlyDimensions } from '../../../components/utils/events/analytics';
+
+function generatePermutivePageData(data) {
+  const NONE = 'none';
+  const breakpoint = window.__tdbHelpers?.getBreakpoint();
+  let device;
+  switch (breakpoint) {
+    case 'desktopLg':
+    case 'desktopMd':
+    case 'desktopSm':
+    case 'fhd':
+      device = 'desktop';
+      break;
+    case 'tab':
+      device = 'tablet';
+      break;
+    case 'mobile':
+      device = 'mobile';
+  }
+
+  const queryParams = window.__tdbHelpers?.getQueryParams() || {};
+
+  const permutivePageData = {
+    audience: 'public',
+    // contentType: house, sponsored, or branded
+    device,
+    // franchise: something || NONE
+    referralType: queryParams.via || NONE,
+    referrer: queryParams.source || NONE,
+    // sailthruId: getSailthruId(sailthruId) || EMPTY_STRING,
+    // section: something || NONE,
+    siteId: `iac.tdb-tdb.us.${device === 'mobile' ? 'mw' : 'dw'}`,
+    // specialContentFlag: NONE,
+    // subsection: NONE,
+    // subtemplate: NONE,
+    // template: 'home', // home, wrap, etc
+    // ...addPushlyDimensions(),
+    // ...membershipData({
+    //   pianoUserData: user, // contains: { isAdFree, loggedIn, tdbUser }
+    //   tdbUserCookie: userIds && userIds.tdbUser,
+    // }),
+    ...(data || {}),
+  };
+  // const user = JSON.parse(
+  //   atob(window.__tdbHelpers.getCookieByName('__utp')?.split('.')[1])
+  // );
+
+  permutivePageData.pushUserId = window.gaDimensions?.dimension39;
+  permutivePageData.pushUserType = window.gaDimensions?.dimension40;
+
+  return permutivePageData;
+}
+
+window.generatePermutive = function (
+  PERMUTIVE_TAG_RATE,
+  PERMUTIVE_PUBLIC_API_KEY,
+  data
+) {
+  var showPermutive = Math.random() < PERMUTIVE_TAG_RATE;
+  if (showPermutive) {
+    !(function (n, e, i) {
+      if (!n) {
+        (n = n || {}),
+          (window.permutive = n),
+          (n.q = []),
+          (n.config = i || {}),
+          (n.config.apiKey = e),
+          (n.config.environment = n.config.environment || 'production');
+        for (
+          var o = [
+              'addon',
+              'identify',
+              'track',
+              'trigger',
+              'query',
+              'segment',
+              'segments',
+              'ready',
+              'on',
+              'once',
+              'user',
+              'consent',
+            ],
+            r = 0;
+          r < o.length;
+          r++
+        ) {
+          var t = o[r];
+          n[t] = (function (e) {
+            return function () {
+              var i = Array.prototype.slice.call(arguments, 0);
+              n.q.push({ arguments: i, functionName: e });
+            };
+          })(t);
+        }
+      }
+    })(window.permutive, PERMUTIVE_PUBLIC_API_KEY, {});
+    (window.googletag = window.googletag || {}),
+      (window.googletag.cmd = window.googletag.cmd || []),
+      window.googletag.cmd.push(function () {
+        if (0 === window.googletag.pubads().getTargeting('permutive').length) {
+          var g = window.localStorage.getItem('_pdfps');
+          window.googletag
+            .pubads()
+            .setTargeting('permutive', g ? JSON.parse(g) : []);
+          var o = window.localStorage.getItem('permutive-id');
+          o &&
+            (window.googletag.pubads().setTargeting('puid', o),
+            window.googletag
+              .pubads()
+              .setTargeting('ptime', Date.now().toString()));
+        }
+      });
+    var permutivePageData = generatePermutivePageData(data);
+    window.permutive.addon('web', { page: permutivePageData });
+    var permutiveUsers = [];
+    if (permutivePageData.tdbUser && permutivePageData.tdbUser.length) {
+      permutiveUsers.push({
+        id: permutivePageData.tdbUser,
+        priority: 0,
+        tag: 'piano',
+      });
+    }
+    if (permutivePageData.sailthruId && permutivePageData.sailthruId.length) {
+      permutiveUsers.push({
+        id: permutivePageData.sailthruId,
+        priority: 1,
+        tag: 'sailthru',
+      });
+    }
+    if (permutivePageData.pushUserId && permutivePageData.pushUserId.length) {
+      permutiveUsers.push({
+        id: permutivePageData.pushUserId,
+        priority: 2,
+        tag: 'pushly',
+      });
+    }
+
+    if (permutiveUsers.length) {
+      window.permutive.identify(permutiveUsers);
+    }
+  }
+};

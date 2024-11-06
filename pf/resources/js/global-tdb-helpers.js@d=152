@@ -1,0 +1,113 @@
+(function tdbHelpers() {
+  const ONE_DAY_IN_MILLISECONDS = 1000 * 60 * 60 * 24;
+  const debounce = (func, delay) => {
+    let timeoutId;
+    return (...args) => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        func(...args);
+      }, delay);
+    };
+  };
+
+  function setCookie(name, value, days) {
+    let expires = '';
+    if (days) {
+      const date = new Date();
+      date.setTime(date.getTime() + days * ONE_DAY_IN_MILLISECONDS);
+      expires = `; expires=${date.toUTCString()}`;
+    }
+    document.cookie = `${name}=${value || ''}${expires}; path=/ SameSite=none; Secure`;
+  }
+
+  function getAllCookies() {
+    const cookies = document.cookie.split(';');
+    const cookiesObject = {};
+    cookies.forEach((cookie) => {
+      const [name, value] = cookie.trim().split('=');
+      cookiesObject[name] = value;
+    });
+    return cookiesObject;
+  }
+
+  function getCookieByName(name) {
+    const nameEQ = `${name}=`;
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i += 1) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+  }
+
+  function eraseCookie(name) {
+    document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+  }
+
+  const breakpointsRegistered = {};
+  function getBreakpoint(bps = {}) {
+    const breakpoints = {
+      desktopLg: '(min-width: 1440px) and (max-width: 1919px)',
+      desktopMd: '(min-width: 1280px) and (max-width: 1439px)',
+      desktopSm: '(min-width: 1032px) and (max-width: 1279px)',
+      fhd: '(min-width: 1920px)',
+      mobile: '(max-width: 703px)',
+      tab: '(min-width: 704px) and (max-width: 1031px)',
+      ...bps,
+    };
+    const keys = Object.keys(breakpoints);
+
+    function getCurrentBreakpoint() {
+      const matchedBreakpoint = keys.find(
+        (key) => window.matchMedia(breakpoints[key]).matches
+      );
+      return matchedBreakpoint;
+    }
+
+    keys.forEach((key) => {
+      if (breakpointsRegistered[breakpoints[key]]) return;
+
+      breakpointsRegistered[breakpoints[key]] = true;
+      window.matchMedia(breakpoints[key]).addEventListener(
+        'change',
+        debounce(() => {
+          window.dispatchEvent(
+            new CustomEvent('breakpointChange', {
+              detail: getCurrentBreakpoint(),
+            })
+          );
+        }, 300)
+      );
+    });
+
+    return getCurrentBreakpoint();
+  }
+
+  function getQueryParams() {
+    let params = {};
+    const search = window.location.search;
+    if (search) {
+      params = new Proxy(new URLSearchParams(window.location.search), {
+        get: (searchParams, prop) => searchParams.get(prop),
+      });
+    }
+
+    return params;
+  }
+
+  // New function to get meta tag content by name
+  function getMetaContentByName(name) {
+    const metaTag = document.querySelector(`meta[name="${name}"]`);
+    return metaTag ? metaTag.content : null;
+  }
+
+  window.__tdbHelpers = window.__tdbHelpers || {};
+  window.__tdbHelpers.eraseCookie = eraseCookie;
+  window.__tdbHelpers.getAllCookies = getAllCookies;
+  window.__tdbHelpers.getCookieByName = getCookieByName;
+  window.__tdbHelpers.setCookie = setCookie;
+  window.__tdbHelpers.getBreakpoint = getBreakpoint;
+  window.__tdbHelpers.getQueryParams = getQueryParams;
+  window.__tdbHelpers.getMetaContentByName = getMetaContentByName; // Register the new function
+})();

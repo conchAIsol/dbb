@@ -1,0 +1,155 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable no-undef */
+
+(function () {
+  var gptRan = false;
+  window.PWT = {}; //Initialize Namespace
+  window.googletag = window.googletag || {};
+  window.googletag.cmd = window.googletag.cmd || [];
+  window.arcAds = null;
+  window.arcAdsConfig = {
+    bidding: {
+      amazon: {
+        enabled: true,
+        id: '3358',
+      },
+      openwrap: {
+        enabled: true,
+      },
+    },
+    dfp: {
+      collapseEmptyDivs: true,
+      id: '68287174',
+    },
+  };
+
+  window.PWT.jsLoaded = function () {
+    //PubMatic pwt.js on load callback is used to load GPT
+    loadGPT('PWT.jsLoaded');
+  };
+
+  function getSessionId() {
+    if (typeof window !== 'undefined') {
+      const sessionIdFromStorage = sessionStorage.getItem('sessionId')
+        ? sessionStorage.getItem('sessionId')
+        : window.__tdbHelpers.getCookieByName('_utp');
+      return sessionIdFromStorage;
+    }
+    return null;
+  }
+
+  function getTestSegment() {
+    if (typeof window !== 'undefined') {
+      const testSegmentFromStorage = sessionStorage.getItem('testSegment')
+        ? sessionStorage.getItem('testSegment')
+        : null;
+      return testSegmentFromStorage;
+    }
+    return null;
+  }
+
+  function getBrowserId() {
+    if (typeof window !== 'undefined') {
+      const browserIdFromStorage = localStorage.getItem('browserId')
+        ? localStorage.getItem('browserId')
+        : null;
+
+      return browserIdFromStorage;
+    }
+    return null;
+  }
+
+  function trackPageViews() {
+    const now = new Date().getTime();
+    const firstViewTimestamp = localStorage.getItem('firstViewTimestamp');
+    let pageViews = localStorage.getItem('pageViews');
+
+    if (!firstViewTimestamp || now - firstViewTimestamp > 24 * 60 * 60 * 1000) {
+      localStorage.setItem('firstViewTimestamp', now);
+      pageViews = 1;
+    } else {
+      pageViews = parseInt(pageViews, 10) + 1;
+    }
+
+    localStorage.setItem('pageViews', pageViews);
+    return pageViews;
+  }
+
+  function getLoggedIn() {
+    const userData = window.__tdbHelpers?.getCookieByName('__utp');
+    if (userData) {
+      const parsedUserData = JSON.parse(atob(userData.split('.')[1]));
+      return parsedUserData.loggedIn || false;
+    }
+    return false;
+  }
+
+  function pageLevelTargeting() {
+    var customData = window.customAdObject;
+    //const pageType = metaValue('page-type');
+
+    window.googletag.cmd.push(function () {
+      if (window.googletag.pubads) {
+        window.googletag.pubads().setTargeting('session_id', getSessionId());
+
+        window.googletag.pubads().setTargeting('browser_id', getBrowserId());
+        window.googletag.pubads().setTargeting('testsegment', getTestSegment());
+
+        window.googletag
+          .pubads()
+          .setTargeting(
+            'screenreso',
+            `${typeof window !== 'undefined' ? window.screen.width : 'unknown'}x${typeof window !== 'undefined' ? window.screen.height : 'unknown'}`
+          );
+
+        window.googletag
+          .pubads()
+          .setTargeting('loggedIn', getLoggedIn() ? '1' : '0');
+
+        //what page view in the entire stie
+        window.googletag
+          .pubads()
+          .setTargeting('pd24', trackPageViews().toString());
+
+        //foreach property of customAdObject, setTargeting
+        Object.keys(customData).forEach((key) => {
+          const value = customData[key];
+          window.googletag.pubads().setTargeting(key, value);
+        });
+      }
+    });
+  }
+
+  var loadGPT = function () {
+    // Check the gptRan flag
+    if (!gptRan) {
+      window.arcAds = new window.ArcAds(window.arcAdsConfig);
+      pageLevelTargeting();
+      gptRan = true;
+    }
+  };
+
+  // Failsafe to call gpt. 500 ms timeout can be updated as per publisher preference.
+  setTimeout(() => {
+    loadGPT('setTimeout');
+  }, 500);
+
+  (function () {
+    var purl = window.location.href;
+    var url = '//ads.pubmatic.com/AdServer/js/pwt/161671/13806';
+    var profileVersionId = '';
+    if (purl.indexOf('pwtv=') > 0) {
+      var regexp = /pwtv=(.*?)(&|$)/g;
+      var matches = regexp.exec(purl);
+      if (matches.length >= 2 && matches[1].length > 0) {
+        profileVersionId = '/' + matches[1];
+      }
+    }
+    var wtads = document.createElement('script');
+    wtads.async = true;
+    wtads.type = 'text/javascript';
+    wtads.src = url + profileVersionId + '/pwt.js';
+    var node = document.getElementsByTagName('script')[0];
+    node.parentNode.insertBefore(wtads, node);
+  })();
+})();
